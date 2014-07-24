@@ -401,14 +401,16 @@ let write_request ?size ~flags nf page =
          fail e in
   return replied
 
-(* Transmit a packet from buffer, with offset and length *)  
+(* Transmit a packet from buffer, with offset and length.
+ * Returns when the packet has been submitted (but not yet
+ * accepted). Wait on the returned thread to find out when
+ * all fragments have been acknowledged and the resources
+ * cleaned up. *)
 let rec write_already_locked nf page =
   try_lwt
     lwt th = write_request ~flags:0 nf page in
     Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
-    lwt () = th in
-    (* all fragments acknowledged, resources cleaned up *)
-    return ()
+    return th
   with | Lwt_ring.Shutdown -> write_already_locked nf page
 
 let write nf page =
@@ -416,6 +418,7 @@ let write nf page =
     (fun () ->
        write_already_locked nf page
     )
+  >>= fun th -> th
 
 (* Transmit a packet from a list of pages *)
 let writev nf pages =
@@ -432,7 +435,7 @@ let writev nf pages =
        let numneeded = List.length pages in
        wait_for_free_tx Activations.program_start numneeded >>
        match pages with
-       |[] -> return ()
+       |[] -> return (return ())
        |[page] ->
          (* If there is only one page, then just write it normally *)
          write_already_locked nf page
@@ -455,8 +458,10 @@ let writev nf pages =
          lwt rest_th = xmit other_pages in
          (* All fragments are now written, we can now notify the backend *)
          Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
-         join rest_th
+         return (join rest_th)
     )
+  (* Wait for backend to finish with the pages, outside the mutex. *)
+  >>= fun th -> th
 
 let wait_for_plug nf =
   Printf.printf "Wait for plug...\n";
