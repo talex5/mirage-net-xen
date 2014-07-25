@@ -367,6 +367,18 @@ let page_size = Io_page.round_to_page_size 1
 (* Push a single page to the ring, but no event notification *)
 let write_request ?size ~flags nf page =
   let len = Cstruct.len page in
+
+  (* Hack for two problems:
+   * 1. sending duplicate pages confuses Linux dom0.
+   * 2. we want to return to the user before the page has been processed.
+   *)
+  let dup =
+    Io_page.round_to_page_size len / page_size
+    |> Io_page.get
+    |> Io_page.to_cstruct in
+  Cstruct.blit page 0 dup 0 len;
+  let page = Cstruct.sub dup 0 len in
+
   if page.Cstruct.off + len > page_size then begin
     (* netback rejects packets that cross page boundaries *)
     let msg =
