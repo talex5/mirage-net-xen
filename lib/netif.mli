@@ -15,7 +15,7 @@
  *)
 
 (** Xen Netfront interface for Ethernet I/O. *)
-include V1.NETWORK
+include V2.NETWORK
 with type 'a io = 'a Lwt.t
 and type     page_aligned_buffer = Io_page.t
 and type     buffer = Cstruct.t

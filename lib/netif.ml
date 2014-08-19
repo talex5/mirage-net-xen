@@ -100,6 +100,8 @@ module TX = struct
       |More_data      (* 4 *)
       |Extra_info     (* 8 *)
 
+    let flag_checksum_blank = 1
+    let flag_data_validated = 2
     let flag_more_data = 4
 
     let write ~gref ~offset ~flags ~id ~size slot =
@@ -402,23 +404,26 @@ let write_request ?size ~flags nf page =
   return replied
 
 (* Transmit a packet from buffer, with offset and length *)  
-let rec write_already_locked nf page =
+let rec write_already_locked ~flags nf page =
   try_lwt
-    lwt th = write_request ~flags:0 nf page in
+    lwt th = write_request ~flags nf page in
     Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
     lwt () = th in
     (* all fragments acknowledged, resources cleaned up *)
     return ()
-  with | Lwt_ring.Shutdown -> write_already_locked nf page
+  with | Lwt_ring.Shutdown -> write_already_locked ~flags nf page
 
 let write nf page =
   Lwt_mutex.with_lock nf.t.tx_mutex
     (fun () ->
-       write_already_locked nf page
+       write_already_locked ~flags:0 nf page
     )
 
 (* Transmit a packet from a list of pages *)
-let writev nf pages =
+let writev2 ~needs_checksum nf pages =
+  let flags =
+    if needs_checksum then TX.Proto_64.(flag_checksum_blank lor flag_data_validated)
+    else 0 in
   Lwt_mutex.with_lock nf.t.tx_mutex
     (fun () ->
        let rec wait_for_free_tx event n =
@@ -435,21 +440,21 @@ let writev nf pages =
        |[] -> return ()
        |[page] ->
          (* If there is only one page, then just write it normally *)
-         write_already_locked nf page
+         write_already_locked ~flags nf page
        |first_page::other_pages ->
          (* For Xen Netfront, the first fragment contains the entire packet
           * length, which is the backend will use to consume the remaining
           * fragments until the full length is satisfied *)
          let size = Cstruct.lenv pages in
          lwt first_th =
-           write_request ~flags:TX.Proto_64.flag_more_data ~size nf first_page in
+           write_request ~flags:(flags lor TX.Proto_64.flag_more_data) ~size nf first_page in
          let rec xmit = function
            | [] -> return []
            | hd :: [] ->
-             lwt th = write_request ~flags:0 nf hd in
+             lwt th = write_request ~flags nf hd in
              return [ th ]
            | hd :: tl ->
-             lwt next_th = write_request ~flags:TX.Proto_64.flag_more_data nf hd in
+             lwt next_th = write_request ~flags:(flags lor TX.Proto_64.flag_more_data) nf hd in
              lwt rest = xmit tl in
              return (next_th :: rest) in
          lwt rest_th = xmit other_pages in
@@ -457,6 +462,8 @@ let writev nf pages =
          Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
          return ()
     )
+
+let writev = writev2 ~needs_checksum:false
 
 let wait_for_plug nf =
   Printf.printf "Wait for plug...\n";
