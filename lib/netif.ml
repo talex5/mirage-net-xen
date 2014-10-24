@@ -284,6 +284,7 @@ let refill_requests nf =
   else return ()
 
 let rx_poll nf (fn: Cstruct.t -> unit Lwt.t) =
+  Profile.label "Netif.rx_poll";
   Ring.Rpc.Front.ack_responses nf.rx_fring (fun slot ->
       let id,(offset,flags,status) = RX.Proto_64.read slot in
       let gref, page = Hashtbl.find nf.rx_map id in
@@ -302,6 +303,7 @@ let rx_poll nf (fn: Cstruct.t -> unit Lwt.t) =
     )
 
 let tx_poll nf =
+  Profile.label "Netif.tx_poll";
   Lwt_ring.Front.poll nf.tx_client TX.Proto_64.read
 
 let poll_thread (nf: t) : unit Lwt.t =
