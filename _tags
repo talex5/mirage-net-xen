@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 282b791d3081fe318641dbdc9f8fd71f)
+# DO NOT EDIT (digest: a593ceb8dae36322f6ecd29d660b019e)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -17,6 +17,7 @@ true: annot, bin_annot
 # Library netchannel
 "lib/netchannel.cmxs": use_netchannel
 "lib/frontend.cmx": for-pack(Netchannel)
+"lib/backend.cmx": for-pack(Netchannel)
 "lib/xenstore.cmx": for-pack(Netchannel)
 "lib/s.cmx": for-pack(Netchannel)
 "lib/stats.cmx": for-pack(Netchannel)
@@ -30,6 +31,7 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: pkg_cstruct
 <lib/*.ml{,i,y}>: pkg_cstruct.syntax
 <lib/*.ml{,i,y}>: pkg_ipaddr
+<lib/*.ml{,i,y}>: pkg_logs
 <lib/*.ml{,i,y}>: pkg_lwt.syntax
 <lib/*.ml{,i,y}>: pkg_mirage-profile
 <lib/*.ml{,i,y}>: pkg_mirage-xen
@@ -41,6 +43,7 @@ true: annot, bin_annot
 <compat/*.ml{,i,y}>: pkg_cstruct
 <compat/*.ml{,i,y}>: pkg_cstruct.syntax
 <compat/*.ml{,i,y}>: pkg_ipaddr
+<compat/*.ml{,i,y}>: pkg_logs
 <compat/*.ml{,i,y}>: pkg_lwt.syntax
 <compat/*.ml{,i,y}>: pkg_mirage-profile
 <compat/*.ml{,i,y}>: pkg_mirage-xen

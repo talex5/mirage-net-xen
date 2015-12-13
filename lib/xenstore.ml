@@ -15,6 +15,9 @@
  *)
 open Lwt
 
+let src = Logs.Src.create "net-xen.xenstore" ~doc:"mirage-net-xen's Xenstore"
+module Log = (val Logs.src_log src : Logs.LOG)
+
 let (/) a b =
   if a = "" then b
   else if b = "" then a
@@ -150,6 +153,7 @@ module Make(Xs: Xs_client_lwt.S) = struct
           Xs.read h (frontend / "state")
           >>= fun state ->
           let open OS.Device_state in
+          Log.debug "read_frontend_configuration: state = %S" (fun f -> f state);
           match of_string state with
           | Initialised | Connected -> return ()
           | Unknown
@@ -187,6 +191,7 @@ module Make(Xs: Xs_client_lwt.S) = struct
       Lwt.catch
         (fun () ->
           Xs.read h (conf.backend / "state") >>= fun state ->
+          Log.debug "wait_until_backend_connected: state = %S" (fun f -> f state);
           let open OS.Device_state in
           match of_string state with
           | Connected -> return ()
@@ -213,6 +218,7 @@ module Make(Xs: Xs_client_lwt.S) = struct
         | `Client _ -> frontend id
         | `Server (_, _) -> backend id )
       >>= fun path ->
+      Log.debug "Setting state to Connected" Logs.unit;
       write h (path / "state") OS.Device_state.(to_string Connected)
     ))
 

@@ -1,9 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: f9deac9fec6a6c0c8cb499b0422d2a8b)
+# DO NOT EDIT (digest: 7cca22bf05db261d3023a1c93a1205df)
 version = "1.4.1"
 description = "Xen network frontend driver implementation"
 requires =
-"lwt cstruct ipaddr mirage-xen xen-evtchn xen-gnt mirage-profile result"
+"lwt cstruct ipaddr mirage-xen xen-evtchn xen-gnt mirage-profile result logs"
 archive(byte) = "netchannel.cma"
 archive(byte, plugin) = "netchannel.cma"
 archive(native) = "netchannel.cmxa"

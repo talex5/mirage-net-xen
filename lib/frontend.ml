@@ -156,6 +156,7 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
     if num > 0 then
       lwt grefs = Gnt.Gntshr.get_n num in
       let pages = Io_page.pages num in
+      (* Where do these get freed? *)
       List.iter
         (fun (gref, page) ->
            let id = gref mod (1 lsl 16) in

@@ -15,36 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Result
+module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) : sig
+  include V1_LWT.NETWORK
 
-module Request : sig
-  type t = {
-    id: int;
-    gref: int32;
-  } with sexp
-
-  val write: t -> Cstruct.t -> unit
-
-  val read: Cstruct.t -> t
+  val make: domid:int -> device_id:int -> t Lwt.t
+  (** [make ~domid ~device_id] connects a backend connecting to [domid] *)
 end
-
-module Response : sig
-  type error = int    (* Always negative *)
-
-  type t = {
-    id: int;
-    offset: int;
-    flags: Flags.t;
-    size: (int, error) result;
-  }
-
-  val read: Cstruct.t -> t ResultM.t
-
-  val write: t -> Cstruct.t -> unit
-
-  val flags: t -> Flags.t
-
-  val size: t -> (int, error) result
-end
-
-val total_size: int

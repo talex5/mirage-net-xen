@@ -14,8 +14,11 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
+open Result
 
 module Request : sig
+  type error = { impossible : 'a. 'a }  (* No errors *)
+
   type t = {
     gref: int32;
     offset: int;
@@ -27,6 +30,10 @@ module Request : sig
   val write: t -> Cstruct.t -> unit
 
   val read: Cstruct.t -> t ResultM.t
+
+  val flags: t -> Flags.t
+
+  val size: t -> (int, error) result
 end
 
 module Response : sig
