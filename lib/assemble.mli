@@ -38,6 +38,9 @@ module Make(F : FRAME_MSG) : sig
   type frame = {
     total_size : int;
     fragments : fragment list;
+    flags : Flags.t;
+    (** Flags from the first message, excluding [more_data] and [extra_info],
+        which have already been handled. *)
   }
 
   val group_frames : F.t list -> (frame, (F.error * F.t list)) result list

@@ -111,7 +111,7 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
 
   (* Loop checking for incoming requests on the from_netfront ring.
      Frames received will go to [fn]. *)
-  let listen (t: t) fn : unit Lwt.t =
+  let listen_full (t: t) fn : unit Lwt.t =
     let from_netfront () =
       match t.from_netfront with
       | None -> raise Netback_shutdown
@@ -156,7 +156,12 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
             ) >|= fun () ->
             assert (!next = Cstruct.len data);
             Stats.rx t.stats (Int64.of_int (Cstruct.len data));
-            Lwt.async (fun () -> fn data)
+            Lwt.async (fun () ->
+              fn
+                ~checksum_partial:(Flags.(mem checksum_blank) frame.Recv.flags)
+                ~checksum_validated:(Flags.(mem data_validated) frame.Recv.flags)
+                data
+            )
       )
       >>= fun () ->
       let notify = Ring.Rpc.Back.push_responses_and_check_notify (from_netfront ()) in
@@ -164,6 +169,9 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
       OS.Activations.after t.channel after
       >>= loop in
     loop OS.Activations.program_start
+
+  let listen t fn =
+    listen_full t (fun ~checksum_partial:_ ~checksum_validated:_ frame -> fn frame)
 
   let to_netfront t =
     match t.to_netfront with

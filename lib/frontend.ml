@@ -208,7 +208,10 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
           assert (!next = Cstruct.len data);
           Lwt.async (fun () ->
             Stats.rx nf.stats (Int64.of_int (Cstruct.len data));
-            fn data
+            fn
+              ~checksum_partial:(Flags.(mem checksum_blank) frame.Recv.flags)
+              ~checksum_validated:(Flags.(mem data_validated) frame.Recv.flags)
+              data
           )
     )
 
@@ -219,7 +222,7 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
       (resp.TX.Response.id, resp)
     )
 
-  let listen nf receive_callback =
+  let listen_full nf receive_callback =
     MProf.Trace.label "Netchannel.Frontend.listen";
     let rec loop from =
       rx_poll nf.t receive_callback;
@@ -229,6 +232,9 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
       loop from
     in
     loop Activations.program_start
+
+  let listen t fn =
+    listen_full t (fun ~checksum_partial:_ ~checksum_validated:_ frame -> fn frame)
 
   let connect id =
     (* If [id] is an integer, use it. Otherwise default to the first

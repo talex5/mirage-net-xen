@@ -18,5 +18,10 @@
 module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) : sig
   include V1_LWT.NETWORK
 
+  val listen_full :
+    t ->
+    (checksum_partial:bool -> checksum_validated:bool -> Cstruct.t -> unit Lwt.t) ->
+    unit Lwt.t
+
   val connect : string -> [`Ok of t | `Error of error] io
 end

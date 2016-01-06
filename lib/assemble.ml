@@ -32,6 +32,7 @@ module Make(F : FRAME_MSG) = struct
   type frame = {
     total_size : int;
     fragments : fragment list;
+    flags : Flags.t;
   }
 
   let to_fragments =
@@ -54,10 +55,12 @@ module Make(F : FRAME_MSG) = struct
     | Ok rest ->
     let first_size = List.fold_left (fun acc f -> acc - f.size) total_size rest in
     assert (first_size >= 0 && first_size <= Io_page.page_size);
+    let flags = Flags.(F.flags first -- (more_data ++ extra_info)) in
     let first = { size = first_size; msg = first } in
     Ok {
       total_size;
       fragments = first :: rest;
+      flags;
     }
 
   (* Convert a list of requests into a list of frames.

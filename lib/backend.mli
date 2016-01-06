@@ -18,6 +18,11 @@
 module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) : sig
   include V1_LWT.NETWORK
 
+  val listen_full :
+    t ->
+    (checksum_partial:bool -> checksum_validated:bool -> Cstruct.t -> unit Lwt.t) ->
+    unit Lwt.t
+
   val make: domid:int -> device_id:int -> t Lwt.t
   (** [make ~domid ~device_id] connects a backend connecting to [domid] *)
 end
