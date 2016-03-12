@@ -54,6 +54,11 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
     | `Disconnected      (** the device has been previously disconnected *)
   ]
 
+  let pp_error f = function
+    | `Unknown x -> Format.pp_print_string f x
+    | `Unimplemented -> Format.pp_print_string f "Unimplemented operation"
+    | `Disconnected -> Format.pp_print_string f "Network device is disconnected"
+
   type stats = Stats.t = {
     mutable rx_bytes : int64;
     mutable rx_pkts : int32;

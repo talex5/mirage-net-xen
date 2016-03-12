@@ -30,10 +30,13 @@ module Make(C: S.CONFIGURATION with type 'a io = 'a Lwt.t) = struct
   type buffer = Cstruct.t
   type page_aligned_buffer = Io_page.t
   type error = [
-    | `Unknown of string
     | `Unimplemented
     | `Disconnected
   ]
+
+  let pp_error f = function
+    | `Unimplemented -> Format.pp_print_string f "Unimplemented operation"
+    | `Disconnected -> Format.pp_print_string f "Network device is disconnected"
 
   type stats = Stats.t = {
     mutable rx_bytes : int64;
