@@ -486,10 +486,20 @@ let write_request ?size ~flags nf datav =
     let size = match size with |None -> len |Some s -> s in
     nf.t.stats.tx_pkts <- Int32.succ nf.t.stats.tx_pkts;
     nf.t.stats.tx_bytes <- Int64.add nf.t.stats.tx_bytes (Int64.of_int size);
+    let orig_checksum = Digest.string (Cstruct.to_string shared_block) in
     lwt replied = Lwt_ring.Front.write nf.t.tx_client
         (TX.Proto_64.write ~id:gref ~gref:(Int32.of_int gref) ~offset:shared_block.Cstruct.off ~flags ~size) in
     (* request has been written; when replied returns we have a reply *)
-    let release = replied >>= fun _ -> return () in
+    let release = replied >>= fun _ ->
+      let new_checksum = Digest.string (Cstruct.to_string shared_block) in
+      if new_checksum = orig_checksum then print_endline "Checksums OK"
+      else (
+        Printf.printf "Checksums changed! %s -> %s\n%!"
+          (Digest.to_hex orig_checksum)
+          (Digest.to_hex new_checksum);
+        failwith "checksum fail"
+      );
+      return () in
     return (datav, release)
   )
 
